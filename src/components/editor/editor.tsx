@@ -1,13 +1,11 @@
 import React from 'react';
-import Container from './container/Container';
+import ViewBoxContainer from './containers/ViewBoxContainer';
 import './editor.css';
-
-interface EditorProps {}
 
 function Editor() {
   return (
-    <div style={{ height: '600px', width: '800px' }}>
-      <Container />
+    <div style={{ height: '600px', width: '600px' }}>
+      <ViewBoxContainer />
     </div>
   );
 }
