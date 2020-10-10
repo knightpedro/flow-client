@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import {gsap} from "gsap";
 
 interface ContainerProps {
   maxZoom?: number;
@@ -16,15 +17,15 @@ interface ViewBox extends Point {
 
 function getViewBoxString(viewBox: ViewBox): string {
   const { x, y, width, height } = viewBox;
-  return `${x} ${y} ${width} ${height}`;
+  return `${Math.round(x)} ${Math.round(y)} ${Math.round(width)} ${Math.round(height)}`;
 }
 
 function ViewBoxContainer({ maxZoom = 10 }: ContainerProps) {
   const initialViewBox = {
     x: 0,
     y: 0,
-    width: 100,
-    height: 100
+    width: 1024,
+    height: 1024
   };
   const [viewBox, setViewBox] = useState<ViewBox>(initialViewBox);
   const [viewBoxRatio, setViewBoxRatio] = useState(1);
@@ -36,6 +37,11 @@ function ViewBoxContainer({ maxZoom = 10 }: ContainerProps) {
   const viewBoxString = useMemo(() => {
     return getViewBoxString(viewBox);
   }, [viewBox]);
+
+  useEffect(() => {
+    console.log(viewBoxString)
+    gsap.to(svgRef.current, {attr: {viewBox: viewBoxString}, duration: 0.3, ease: "power4.out"})
+  }, [viewBoxString])
 
   useEffect(() => {
     window.addEventListener('mouseup', handleMouseUp);
@@ -95,7 +101,7 @@ function ViewBoxContainer({ maxZoom = 10 }: ContainerProps) {
 
     const scale = Math.pow(2, newZoom - 1)
     const width = initialViewBox.width / scale;
-    const height = initialViewBox.height /scale;
+    const height = initialViewBox.height / scale;
 
     const x =
       viewBox.x -
@@ -116,11 +122,10 @@ function ViewBoxContainer({ maxZoom = 10 }: ContainerProps) {
   return (
     <svg
       ref={svgRef}
-      viewBox={viewBoxString}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onWheel={handleWheel}>
-        <rect x="40" y="40" width="20" height="20"/>
+      <rect vectorEffect="non-scaling-stroke" x="40" y="40" width="20" height="20" />
     </svg>
   );
 }
