@@ -1,5 +1,17 @@
 svg {
   fill: none;
   stroke: #000;
-  stroke-width: 1px;
+  stroke-width: 2px;
+  cursor: grab;
+  border: 1px solid black;
+  background-color: whitesmoke;
+  touch-action: none;
+}
+
+rect {
+  fill: rgb(56, 219, 192);
+}
+
+.panning {
+  cursor: grabbing;
 }

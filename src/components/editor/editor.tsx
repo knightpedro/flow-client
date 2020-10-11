@@ -1,11 +1,11 @@
 import React from 'react';
-import ViewBoxContainer from './containers/ViewBoxContainer';
+import SvgContainer from './containers/SvgContainer';
 import './editor.css';
 
 function Editor() {
   return (
     <div style={{ height: '600px', width: '600px' }}>
-      <ViewBoxContainer />
+      <SvgContainer />
     </div>
   );
 }
