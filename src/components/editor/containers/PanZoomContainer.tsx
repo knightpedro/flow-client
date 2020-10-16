@@ -10,6 +10,9 @@ export default function PanZoomContainer() {
     handleMouseLeave,
     handleMouseMove,
     handleMouseUp,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
     handleWheel,
     viewBox
   } = useSvgPanZoom(svgRef);
@@ -22,6 +25,9 @@ export default function PanZoomContainer() {
       onMouseLeave={handleMouseLeave}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       onWheel={handleWheel}
     />
   );

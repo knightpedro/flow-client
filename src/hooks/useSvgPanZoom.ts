@@ -29,6 +29,9 @@ interface PanZoom {
   handleMouseLeave: React.MouseEventHandler;
   handleMouseMove: React.MouseEventHandler;
   handleMouseUp: React.MouseEventHandler;
+  handleTouchStart: React.TouchEventHandler;
+  handleTouchMove: React.TouchEventHandler;
+  handleTouchEnd: React.TouchEventHandler;
   handleWheel: React.WheelEventHandler;
   viewBox?: string;
 }
@@ -43,18 +46,35 @@ function calculateViewBoxFromBBox(bbox: DOMRect): ViewBox {
   };
 }
 
-function getPointFromEvent(e: React.MouseEvent): Point {
-  return {
-    x: e.clientX,
-    y: e.clientY
-  };
-}
-
 function clientPointToSvgPoint(clientPoint: Point, svg: SVGSVGElement): Point {
   const point = svg.createSVGPoint();
   point.x = clientPoint.x;
   point.y = clientPoint.y;
   return point.matrixTransform(svg.getScreenCTM()?.inverse());
+}
+
+function constrain(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(value, min));
+}
+
+function getDistanceBetweenPoints(pointA: Point, pointB: Point): number {
+  return Math.sqrt(
+    Math.pow(pointA.y - pointB.y, 2) + Math.pow(pointA.x - pointB.x, 2)
+  );
+}
+
+function getMidpoint(pointA: Point, pointB: Point): Point {
+  return {
+    x: (pointA.x + pointB.x) / 2,
+    y: (pointA.y + pointB.y) / 2
+  };
+}
+
+function getPointFromEvent(e: React.MouseEvent | React.Touch): Point {
+  return {
+    x: e.clientX,
+    y: e.clientY
+  };
 }
 
 function getViewBoxString(vb?: ViewBox) {
@@ -66,8 +86,10 @@ export default function useSvgPanZoom(
 ): PanZoom {
   const [initialViewBox, setInitialViewBox] = useState(INITIAL_VIEWBOX);
   const [viewBox, setViewBox] = useState(INITIAL_VIEWBOX);
+  const [lastPinchDistance, setLastPinchDistance] = useState(0);
   const [lastPointer, setLastPointer] = useState<Point>({ x: 0, y: 0 });
   const [lastMiddleClick, setLastMiddleClick] = useState<number>();
+  const [lastTouchEnd, setLastTouchEnd] = useState(0);
   const [panning, setPanning] = useState(false);
   const [zoom, setZoom] = useState(ZOOM_MIN);
 
@@ -94,8 +116,24 @@ export default function useSvgPanZoom(
 
   const handleMouseMove = (e: React.MouseEvent) => {
     e.preventDefault();
+    const newPointer = getPointFromEvent(e);
+    handlePan(newPointer);
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    setPanning(false);
+    if (e.button === MIDDLE_CLICK) {
+      if (
+        lastMiddleClick &&
+        lastMiddleClick + DOUBLE_CLICK_THRESHOLD > e.timeStamp
+      )
+        reset();
+      setLastMiddleClick(e.timeStamp);
+    }
+  };
+
+  const handlePan = (newPointer: Point) => {
     if (panning && svgRef.current) {
-      const newPointer = getPointFromEvent(e);
       const bbox = svgRef.current.getBoundingClientRect();
       setViewBox((prev) => ({
         x:
@@ -109,16 +147,56 @@ export default function useSvgPanZoom(
     }
   };
 
-  const handleMouseUp = (e: React.MouseEvent) => {
-    setPanning(false);
-    if (e.button === MIDDLE_CLICK) {
-      if (
-        lastMiddleClick &&
-        lastMiddleClick + DOUBLE_CLICK_THRESHOLD > e.timeStamp
-      )
-        reset();
-      setLastMiddleClick(e.timeStamp);
+  const handlePinchStart = (e: React.TouchEvent) => {
+    const pointA = getPointFromEvent(e.touches[0]);
+    const pointB = getPointFromEvent(e.touches[1]);
+    setLastPinchDistance(getDistanceBetweenPoints(pointA, pointB));
+  };
+
+  const handlePinchMove = (e: React.TouchEvent) => {
+    const pointA = getPointFromEvent(e.touches[0]);
+    const pointB = getPointFromEvent(e.touches[1]);
+    const distance = getDistanceBetweenPoints(pointA, pointB);
+    const midpoint = getMidpoint(pointA, pointB);
+
+    if (lastPinchDistance) {
+      const newZoom = constrain(
+        (zoom * distance) / lastPinchDistance,
+        ZOOM_MIN,
+        ZOOM_MAX
+      );
+      handleZoom(newZoom, midpoint);
     }
+
+    setLastPinchDistance(distance);
+  };
+
+  const handleTapStart = (e: React.TouchEvent) => {
+    setPanning(true);
+    setLastPointer(getPointFromEvent(e.touches[0]));
+  };
+
+  const handleTapMove = (e: React.TouchEvent) => {
+    const newPointer = getPointFromEvent(e.touches[0]);
+    handlePan(newPointer);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) handleTapStart(e);
+    else if (e.touches.length === 2) handlePinchStart(e);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) handleTapMove(e);
+    else if (e.touches.length === 2) handlePinchMove(e);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    setPanning(false);
+    if (e.touches.length > 0) return;
+    if (lastTouchEnd && lastTouchEnd + DOUBLE_CLICK_THRESHOLD > e.timeStamp)
+      reset();
+    setLastTouchEnd(e.timeStamp);
   };
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -151,6 +229,9 @@ export default function useSvgPanZoom(
     handleMouseLeave,
     handleMouseMove,
     handleMouseUp,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
     handleWheel,
     viewBox: getViewBoxString(viewBox)
   };
