@@ -1,3 +1,4 @@
-import usePrevious from './use-previous';
+import usePrevious from './usePrevious';
+import useSvgPanZoom from './useSvgPanZoom';
 
-export { usePrevious };
+export { usePrevious, useSvgPanZoom };

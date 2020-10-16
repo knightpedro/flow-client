@@ -1,11 +1,11 @@
 import React from 'react';
-import ViewBoxContainer from './containers/ViewBoxContainer';
+import PanZoomContainer from './containers/PanZoomContainer';
 import './editor.css';
 
 function Editor() {
   return (
-    <div style={{ height: '600px', width: '600px' }}>
-      <ViewBoxContainer name="test" />
+    <div style={{ height: '500px', width: '700px' }}>
+      <PanZoomContainer />
     </div>
   );
 }

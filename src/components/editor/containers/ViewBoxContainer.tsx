@@ -1,11 +1,17 @@
-import React, { useState, useRef, useEffect, useMemo, SVGProps, useCallback } from 'react';
-import { gsap } from "gsap"
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  SVGProps,
+  useCallback
+} from 'react';
+import { gsap } from 'gsap';
 
 const DOUBLE_CLICK_THRESHOLD = 300;
 const MIN_ZOOM = 1;
-const VIEWBOX_EASE = "power1.out";
-const VIEWBOX_ANIMATION_DURATION = 0.2;
-
+const VIEWBOX_EASE = 'power4.out';
+const VIEWBOX_ANIMATION_DURATION = 0.1;
 
 interface ContainerProps {
   name: string;
@@ -24,32 +30,36 @@ interface ViewBox extends Point {
 
 function constrain(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(value, min));
-} 
+}
 
 function getClientPointFromEvent(event: React.MouseEvent | React.Touch): Point {
   return { x: event.clientX, y: event.clientY };
 }
 
 function getDistanceBetweenPoints(pointA: Point, pointB: Point): number {
-  return Math.sqrt(Math.pow(pointA.y - pointB.y, 2) + Math.pow(pointA.x - pointB.x, 2))
+  return Math.sqrt(
+    Math.pow(pointA.y - pointB.y, 2) + Math.pow(pointA.x - pointB.x, 2)
+  );
 }
 
-function getMidpoint(pointA: Point, pointB: Point): Point{
+function getMidpoint(pointA: Point, pointB: Point): Point {
   return {
     x: (pointA.x + pointB.x) / 2,
     y: (pointA.y + pointB.y) / 2
-  }
+  };
 }
 
 function getViewBoxString(viewBox: ViewBox): string {
   const { x, y, width, height } = viewBox;
   const viewBoxValues = [x, y, height, width];
-  return viewBoxValues.map(v => Math.round((v + Number.EPSILON) * 10) / 10).join(' ');
+  return viewBoxValues
+    .map((v) => Math.round((v + Number.EPSILON) * 10) / 10)
+    .join(' ');
 }
 
 function ViewBoxContainer({ name, maxZoom = 10 }: ContainerProps) {
   const [loading, setLoading] = useState(false);
-  const svgComponentRef = useRef<React.FC<React.SVGProps<SVGSVGElement>>>()
+  const svgComponentRef = useRef<React.FC<React.SVGProps<SVGSVGElement>>>();
   const [svg, setSvg] = useState<SVGSVGElement>();
   const [initialViewBox, setInitialViewBox] = useState<ViewBox>();
   const [viewBox, setViewBox] = useState<ViewBox>();
@@ -60,41 +70,44 @@ function ViewBoxContainer({ name, maxZoom = 10 }: ContainerProps) {
   const [lastTouchEnd, setLastTouchEnd] = useState<number>();
   const [lastMiddleClick, setLastMiddleClick] = useState<number>();
 
-  const viewBoxString = useMemo(() => {
-    return viewBox ? getViewBoxString(viewBox) : undefined;
-  }, [viewBox]);
-
   const svgRef = useCallback((node: SVGSVGElement) => {
     const vb = node.viewBox.baseVal;
-    setInitialViewBox({x: vb.x, y: vb.y, width: vb.width, height: vb.height});
+    console.log(node);
+    setInitialViewBox({ x: vb.x, y: vb.y, width: vb.width, height: vb.height });
     setSvg(node);
-  }, [])
+  }, []);
 
   useEffect(() => {
     setViewBox(initialViewBox);
-  }, [initialViewBox])
+  }, [initialViewBox]);
 
   useEffect(() => {
-    if (svg && viewBoxString) {
-      gsap.to(svg, {attr: {viewBox: viewBoxString}, duration: VIEWBOX_ANIMATION_DURATION, ease: VIEWBOX_EASE})
+    if (svg && viewBox) {
+      gsap.to(svg, {
+        attr: { viewBox: getViewBoxString(viewBox) },
+        duration: VIEWBOX_ANIMATION_DURATION,
+        ease: VIEWBOX_EASE
+      });
     }
-  }, [viewBoxString, svg])
-
+  }, [viewBox, svg]);
 
   useEffect(() => {
-    setLoading(true)
+    setLoading(true);
     async function importSvg() {
       try {
-        svgComponentRef.current = (await import(`!!@svgr/webpack?-svgo,+titleProp,+ref!../../../svg/${name}.svg`)).default;
-      }
-      catch (error) { throw error;}
-      finally {
+        svgComponentRef.current = (
+          await import(
+            `!!@svgr/webpack?-svgo,+titleProp,+ref!../../../svg/${name}.svg`
+          )
+        ).default;
+      } catch (error) {
+        throw error;
+      } finally {
         setLoading(false);
       }
     }
     importSvg();
-  }, [name])
-
+  }, [name]);
 
   useEffect(() => {
     window.addEventListener('mouseup', handleWindowMouseUp);
@@ -113,7 +126,11 @@ function ViewBoxContainer({ name, maxZoom = 10 }: ContainerProps) {
 
   function handleMouseUp(event: React.MouseEvent): void {
     if (event.button === 1) {
-      if (lastMiddleClick && lastMiddleClick + DOUBLE_CLICK_THRESHOLD > event.timeStamp) reset();
+      if (
+        lastMiddleClick &&
+        lastMiddleClick + DOUBLE_CLICK_THRESHOLD > event.timeStamp
+      )
+        reset();
       setLastMiddleClick(event.timeStamp);
     }
   }
@@ -125,12 +142,13 @@ function ViewBoxContainer({ name, maxZoom = 10 }: ContainerProps) {
   function handleMouseMove(event: React.MouseEvent): void {
     event.preventDefault();
     const newPointer = getClientPointFromEvent(event);
-    handlePan(newPointer)
+    handlePan(newPointer);
   }
 
   function handlePan(newPointer: Point) {
     if (panning && pointer && svg && viewBox) {
-      const viewBoxRatio = viewBox.width / svg.getBoundingClientRect().width;
+      const bbox = svg.getBoundingClientRect();
+      const viewBoxRatio = viewBox.width / bbox.width;
       const x = viewBox.x - (newPointer.x - pointer.x) * viewBoxRatio;
       const y = viewBox.y - (newPointer.y - pointer.y) * viewBoxRatio;
       setViewBox({
@@ -149,14 +167,18 @@ function ViewBoxContainer({ name, maxZoom = 10 }: ContainerProps) {
     setLastPinchDistance(getDistanceBetweenPoints(pointA, pointB));
   }
 
-  function handlePinchMove(event: React.TouchEvent){
+  function handlePinchMove(event: React.TouchEvent) {
     const pointA = getClientPointFromEvent(event.touches[0]);
     const pointB = getClientPointFromEvent(event.touches[1]);
     const distance = getDistanceBetweenPoints(pointA, pointB);
     const midpoint = getMidpoint(pointA, pointB);
 
     if (lastPinchDistance) {
-      const newZoom = constrain(zoom * distance / lastPinchDistance, MIN_ZOOM, maxZoom)
+      const newZoom = constrain(
+        (zoom * distance) / lastPinchDistance,
+        MIN_ZOOM,
+        maxZoom
+      );
       handleZoom(newZoom, midpoint);
     }
 
@@ -164,7 +186,7 @@ function ViewBoxContainer({ name, maxZoom = 10 }: ContainerProps) {
   }
 
   function handleTapStart(event: React.TouchEvent) {
-    setPanning(true)
+    setPanning(true);
     setPointer(getClientPointFromEvent(event.touches[0]));
   }
 
@@ -184,10 +206,11 @@ function ViewBoxContainer({ name, maxZoom = 10 }: ContainerProps) {
   }
 
   function handleTouchEnd(event: React.TouchEvent) {
-    setPanning(false)
+    setPanning(false);
     if (event.touches.length > 0) return;
-    if (lastTouchEnd && lastTouchEnd + DOUBLE_CLICK_THRESHOLD > event.timeStamp) reset();
-    setLastTouchEnd(event.timeStamp)
+    if (lastTouchEnd && lastTouchEnd + DOUBLE_CLICK_THRESHOLD > event.timeStamp)
+      reset();
+    setLastTouchEnd(event.timeStamp);
   }
 
   function handleWheel(event: React.WheelEvent) {
@@ -201,16 +224,22 @@ function ViewBoxContainer({ name, maxZoom = 10 }: ContainerProps) {
   }
 
   function handleZoom(newZoom: number, centre: Point) {
-    if (newZoom < MIN_ZOOM || newZoom > maxZoom || !initialViewBox || !svg || !viewBox) return;
+    if (
+      newZoom < MIN_ZOOM ||
+      newZoom > maxZoom ||
+      !initialViewBox ||
+      !svg ||
+      !viewBox
+    )
+      return;
 
     const bbox = svg.getBoundingClientRect();
-    const scale = Math.pow(2, newZoom - 1)
+    const scale = Math.pow(2, newZoom - 1);
     const width = initialViewBox.width / scale;
     const height = initialViewBox.height / scale;
 
     const x =
-      viewBox.x -
-      ((centre.x - bbox.x) / bbox.width) * (width - viewBox.width);
+      viewBox.x - ((centre.x - bbox.x) / bbox.width) * (width - viewBox.width);
     const y =
       viewBox.y -
       ((centre.y - bbox.y) / bbox.height) * (height - viewBox.height);
@@ -224,19 +253,20 @@ function ViewBoxContainer({ name, maxZoom = 10 }: ContainerProps) {
     setZoom(newZoom);
   }
 
-  const {current: Svg} = svgComponentRef;
+  const { current: Svg } = svgComponentRef;
   if (!Svg) return null;
   return (
     <Svg
       ref={svgRef}
-      className={panning ? "panning" : ''}
+      className={panning ? 'panning' : ''}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      onWheel={handleWheel} />
+      onWheel={handleWheel}
+    />
   );
 }
 

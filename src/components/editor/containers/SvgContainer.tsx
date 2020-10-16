@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { gsap } from "gsap";
+import { gsap } from 'gsap';
 
 const DOUBLE_CLICK_THRESHOLD = 300;
 const INITIAL_VIEWBOX = {
@@ -9,9 +9,8 @@ const INITIAL_VIEWBOX = {
   height: 1024
 };
 const MIN_ZOOM = 1;
-const VIEWBOX_EASE = "power1.out";
+const VIEWBOX_EASE = 'power1.out';
 const VIEWBOX_ANIMATION_DURATION = 0.2;
-
 
 interface ContainerProps {
   maxZoom?: number;
@@ -29,27 +28,31 @@ interface ViewBox extends Point {
 
 function constrain(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(value, min));
-} 
+}
 
 function getClientPointFromEvent(event: React.MouseEvent | React.Touch): Point {
   return { x: event.clientX, y: event.clientY };
 }
 
 function getDistanceBetweenPoints(pointA: Point, pointB: Point): number {
-  return Math.sqrt(Math.pow(pointA.y - pointB.y, 2) + Math.pow(pointA.x - pointB.x, 2))
+  return Math.sqrt(
+    Math.pow(pointA.y - pointB.y, 2) + Math.pow(pointA.x - pointB.x, 2)
+  );
 }
 
-function getMidpoint(pointA: Point, pointB: Point): Point{
+function getMidpoint(pointA: Point, pointB: Point): Point {
   return {
     x: (pointA.x + pointB.x) / 2,
     y: (pointA.y + pointB.y) / 2
-  }
+  };
 }
 
 function getViewBoxString(viewBox: ViewBox): string {
   const { x, y, width, height } = viewBox;
   const viewBoxValues = [x, y, height, width];
-  return viewBoxValues.map(v => Math.round((v + Number.EPSILON) * 10) / 10).join(' ');
+  return viewBoxValues
+    .map((v) => Math.round((v + Number.EPSILON) * 10) / 10)
+    .join(' ');
 }
 
 function SvgContainer({ maxZoom = 10 }: ContainerProps) {
@@ -67,8 +70,12 @@ function SvgContainer({ maxZoom = 10 }: ContainerProps) {
   }, [viewBox]);
 
   useEffect(() => {
-    gsap.to(svgRef.current, {attr: {viewBox: viewBoxString}, duration: VIEWBOX_ANIMATION_DURATION, ease: VIEWBOX_EASE})
-  }, [viewBoxString])
+    gsap.to(svgRef.current, {
+      attr: { viewBox: viewBoxString },
+      duration: VIEWBOX_ANIMATION_DURATION,
+      ease: VIEWBOX_EASE
+    });
+  }, [viewBoxString]);
 
   useEffect(() => {
     window.addEventListener('mouseup', handleWindowMouseUp);
@@ -86,7 +93,11 @@ function SvgContainer({ maxZoom = 10 }: ContainerProps) {
 
   function handleMouseUp(event: React.MouseEvent): void {
     if (event.button === 1) {
-      if (lastMiddleClick && lastMiddleClick + DOUBLE_CLICK_THRESHOLD > event.timeStamp) reset();
+      if (
+        lastMiddleClick &&
+        lastMiddleClick + DOUBLE_CLICK_THRESHOLD > event.timeStamp
+      )
+        reset();
       setLastMiddleClick(event.timeStamp);
     }
   }
@@ -97,12 +108,13 @@ function SvgContainer({ maxZoom = 10 }: ContainerProps) {
 
   function handleMouseMove(event: React.MouseEvent): void {
     const newPointer = getClientPointFromEvent(event);
-    handlePan(newPointer)
+    handlePan(newPointer);
   }
 
   function handlePan(newPointer: Point) {
     if (panning && pointer && svgRef.current) {
-      const viewBoxRatio = viewBox.width / svgRef.current.getBoundingClientRect().width;
+      const viewBoxRatio =
+        viewBox.width / svgRef.current.getBoundingClientRect().width;
       const x = viewBox.x - (newPointer.x - pointer.x) * viewBoxRatio;
       const y = viewBox.y - (newPointer.y - pointer.y) * viewBoxRatio;
       setViewBox({
@@ -121,14 +133,18 @@ function SvgContainer({ maxZoom = 10 }: ContainerProps) {
     setLastPinchDistance(getDistanceBetweenPoints(pointA, pointB));
   }
 
-  function handlePinchMove(event: React.TouchEvent){
+  function handlePinchMove(event: React.TouchEvent) {
     const pointA = getClientPointFromEvent(event.touches[0]);
     const pointB = getClientPointFromEvent(event.touches[1]);
     const distance = getDistanceBetweenPoints(pointA, pointB);
     const midpoint = getMidpoint(pointA, pointB);
 
     if (lastPinchDistance) {
-      const newZoom = constrain(zoom * distance / lastPinchDistance, MIN_ZOOM, maxZoom)
+      const newZoom = constrain(
+        (zoom * distance) / lastPinchDistance,
+        MIN_ZOOM,
+        maxZoom
+      );
       handleZoom(newZoom, midpoint);
     }
 
@@ -136,7 +152,7 @@ function SvgContainer({ maxZoom = 10 }: ContainerProps) {
   }
 
   function handleTapStart(event: React.TouchEvent) {
-    setPanning(true)
+    setPanning(true);
     setPointer(getClientPointFromEvent(event.touches[0]));
   }
 
@@ -156,10 +172,11 @@ function SvgContainer({ maxZoom = 10 }: ContainerProps) {
   }
 
   function handleTouchEnd(event: React.TouchEvent) {
-    setPanning(false)
+    setPanning(false);
     if (event.touches.length > 0) return;
-    if (lastTouchEnd && lastTouchEnd + DOUBLE_CLICK_THRESHOLD > event.timeStamp) reset();
-    setLastTouchEnd(event.timeStamp)
+    if (lastTouchEnd && lastTouchEnd + DOUBLE_CLICK_THRESHOLD > event.timeStamp)
+      reset();
+    setLastTouchEnd(event.timeStamp);
   }
 
   function handleWheel(event: React.WheelEvent) {
@@ -176,13 +193,12 @@ function SvgContainer({ maxZoom = 10 }: ContainerProps) {
     if (newZoom < MIN_ZOOM || newZoom > maxZoom || !svgRef.current) return;
 
     const bbox = svgRef.current.getBoundingClientRect();
-    const scale = Math.pow(2, newZoom - 1)
+    const scale = Math.pow(2, newZoom - 1);
     const width = INITIAL_VIEWBOX.width / scale;
     const height = INITIAL_VIEWBOX.height / scale;
 
     const x =
-      viewBox.x -
-      ((centre.x - bbox.x) / bbox.width) * (width - viewBox.width);
+      viewBox.x - ((centre.x - bbox.x) / bbox.width) * (width - viewBox.width);
     const y =
       viewBox.y -
       ((centre.y - bbox.y) / bbox.height) * (height - viewBox.height);
@@ -198,7 +214,7 @@ function SvgContainer({ maxZoom = 10 }: ContainerProps) {
 
   return (
     <svg
-      className={panning ? "panning" : ''}
+      className={panning ? 'panning' : ''}
       ref={svgRef}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -207,7 +223,13 @@ function SvgContainer({ maxZoom = 10 }: ContainerProps) {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onWheel={handleWheel}>
-      <rect vectorEffect="non-scaling-stroke" x="40" y="40" width="20" height="20" />    
+      <rect
+        vectorEffect="non-scaling-stroke"
+        x="40"
+        y="40"
+        width="20"
+        height="20"
+      />
     </svg>
   );
 }

@@ -6,6 +6,8 @@ svg {
   border: 1px solid black;
   background-color: whitesmoke;
   touch-action: none;
+  width: 100%;
+  height: 100%;
 }
 
 rect {
