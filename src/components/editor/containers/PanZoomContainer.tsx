@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { useSvgPanZoom } from '../../../hooks';
-import { ReactComponent as SVG } from '../../../svg/test.svg';
+import { ReactComponent as SVG } from '../../../svg/o.svg';
+import { getViewBoxString } from '../../../utils';
 
 export default function PanZoomContainer() {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -21,7 +22,7 @@ export default function PanZoomContainer() {
     handleTouchMove,
     handleTouchEnd,
     handleWheel,
-    panTo,
+    panning,
     viewBox
   } = useSvgPanZoom(svgRef, options);
 
@@ -29,8 +30,9 @@ export default function PanZoomContainer() {
 
   return (
     <SVG
+      className={panning ? 'panning' : ''}
       ref={svgRef}
-      viewBox={viewBox}
+      viewBox={getViewBoxString(viewBox)}
       onClick={handleClick}
       onMouseDown={handleMouseDown}
       onMouseLeave={handleMouseLeave}

@@ -6,8 +6,7 @@ import {
   constrain,
   getDistanceBetweenPoints,
   getMidpoint,
-  getPointFromEvent,
-  getViewBoxString
+  getPointFromEvent
 } from '../utils';
 
 const DOUBLE_CLICK_THRESHOLD = 300;
@@ -33,8 +32,11 @@ export interface PanZoom {
   handleTouchMove: React.TouchEventHandler;
   handleTouchEnd: React.TouchEventHandler;
   handleWheel: React.WheelEventHandler;
+  panning: boolean;
   panTo: (point: Point) => void;
-  viewBox?: string;
+  reset: () => void;
+  viewBox?: ViewBox;
+  zoomTo: (point: Point, zoomLevel: number) => void;
 }
 
 export interface PanZoomOptions {
@@ -103,12 +105,11 @@ export function useSvgPanZoom(
 
   const handlePan = (newPointer: Point) => {
     if (panning && !panDisabled && svgRef.current) {
-      const bbox = svgRef.current.getBoundingClientRect();
+      const prevPoint = clientPointToSvgPoint(lastPointer, svgRef.current);
+      const newPoint = clientPointToSvgPoint(newPointer, svgRef.current);
       setViewBox((prev) => ({
-        x:
-          prev.x - ((newPointer.x - lastPointer.x) * prev.height) / bbox.height,
-        y:
-          prev.y - ((newPointer.y - lastPointer.y) * prev.height) / bbox.height,
+        x: prev.x - newPoint.x + prevPoint.x,
+        y: prev.y - newPoint.y + prevPoint.y,
         width: prev.width,
         height: prev.height
       }));
@@ -195,13 +196,24 @@ export function useSvgPanZoom(
     setZoom(newZoom);
   };
 
+  // Point in client coordinates
   const panTo = (point: Point) => {
+    if (!svgRef.current) return;
+    const svgPoint = clientPointToSvgPoint(point, svgRef.current);
     setViewBox((prev) => ({
-      x: point.x - prev.width / 2,
-      y: point.y - prev.height / 2,
+      x: svgPoint.x - prev.width / 2,
+      y: svgPoint.y - prev.height / 2,
       width: prev.width,
       height: prev.height
     }));
+  };
+
+  // Point in client coordinates
+  const zoomTo = (point: Point, zoomLevel: number) => {
+    let newZoom = zoomLevel;
+    if (zoomLevel > zoomMax) newZoom = zoomMax;
+    else if (zoomLevel < zoomMin) newZoom = zoomMin;
+    handleZoom(newZoom, point);
   };
 
   const reset = () => {
@@ -217,7 +229,10 @@ export function useSvgPanZoom(
     handleTouchMove,
     handleTouchEnd,
     handleWheel,
+    panning,
     panTo,
-    viewBox: getViewBoxString(viewBox)
+    reset,
+    viewBox,
+    zoomTo
   };
 }
