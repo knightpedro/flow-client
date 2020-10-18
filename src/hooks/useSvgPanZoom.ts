@@ -53,7 +53,7 @@ export function useSvgPanZoom(
     zoomDisabled = false,
     zoomMax = ZOOM_MAX,
     zoomMin = ZOOM_MIN
-  }: PanZoomOptions
+  }: PanZoomOptions = {}
 ): PanZoom {
   const [initialViewBox, setInitialViewBox] = useState(INITIAL_VIEWBOX);
   const [viewBox, setViewBox] = useState(INITIAL_VIEWBOX);

@@ -10,50 +10,6 @@ svg {
   height: 100%;
 }
 
-rect {
-  fill: rgb(56, 219, 192);
-}
-
 .panning {
   cursor: grabbing;
-}
-
-.a {
-  fill: #b4343c;
-}
-.b {
-  fill: #ce3b45;
-}
-.c {
-  fill: #6d3600;
-}
-.d {
-  fill: #315e98;
-}
-.e {
-  fill: #fff;
-}
-.f {
-  fill: #283d54;
-}
-.g {
-  fill: #ffa738;
-}
-.h {
-  fill: #ff8e38;
-}
-.i {
-  fill: #dc7a30;
-}
-.j {
-  fill: #2072ac;
-}
-.k {
-  fill: #ffc26d;
-}
-.l {
-  fill: #2086cc;
-}
-.m {
-  fill: #20b1cc;
 }

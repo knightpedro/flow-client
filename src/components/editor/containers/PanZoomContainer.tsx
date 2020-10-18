@@ -10,7 +10,7 @@ export default function PanZoomContainer() {
     panDisabled: false,
     zoomDisabled: false,
     zoomMax: 8,
-    zoomMin: 0
+    zoomMin: 1
   };
 
   const {
