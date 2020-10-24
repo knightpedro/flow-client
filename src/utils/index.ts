@@ -1,1 +1,1 @@
-export * from './panZoomUtils';
+export * from './svgUtils';
