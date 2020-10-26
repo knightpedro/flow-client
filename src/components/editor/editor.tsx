@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useReducer, useRef, useState } from 'react';
 import {
   faCircle,
   faSquare,
@@ -15,6 +15,25 @@ import { v4 as uuid } from 'uuid';
 import { clientPointToSvgPoint, getPointFromEvent } from '../../utils';
 import { Point } from '../../interfaces';
 
+export interface GraphicDef {
+  component: (props: any) => JSX.Element;
+  getInitialProps: (p: Point) => Object;
+  icon: JSX.Element;
+}
+
+interface EditorState {
+  graphics: JSX.Element[];
+  selectedIndex?: number;
+  selectedTool?: string;
+  lastPoint?: Point;
+  mode: number;
+}
+
+interface EditorAction {
+  type: string;
+  payload: { name?: string; point?: Point };
+}
+
 const Container = styled.div`
   display: flex;
   height: 400px;
@@ -26,92 +45,107 @@ enum Modes {
   EDIT
 }
 
-const elements = [
-  {
-    name: 'line',
-    icon: <FontAwesomeIcon icon={faHorizontalRule} />,
-    component: <path />
-  },
-  {
-    name: 'circle',
+const graphicsMap: { [key: string]: GraphicDef } = {
+  circle: {
     icon: <FontAwesomeIcon icon={faCircle} />,
-    component: <circle r="20" />
+    component: (props: any) => <circle {...props} />,
+    getInitialProps: (p: Point) => ({ cx: p.x, cy: p.y })
   },
-  {
-    name: 'rect',
-    icon: <FontAwesomeIcon icon={faSquare} />,
-    component: <rect width="20" height="20" />
+  line: {
+    icon: <FontAwesomeIcon icon={faHorizontalRule} />,
+    component: (props: any) => <path {...props} />,
+    getInitialProps: (p: Point) => ({ x: p.x, y: p.y })
   },
-  {
-    name: 'polygon',
+  polygon: {
     icon: <FontAwesomeIcon icon={faHexagon} />,
-    component: <polygon />
+    component: (props: any) => <path {...props} />,
+    getInitialProps: (p: Point) => ({ x: p.x, y: p.y })
   },
-  {
-    name: 'text',
+  rect: {
+    icon: <FontAwesomeIcon icon={faSquare} />,
+    component: (props: any) => <rect {...props} />,
+    getInitialProps: (p: Point) => ({ x: p.x, y: p.y })
+  },
+  text: {
     icon: <FontAwesomeIcon icon={faText} />,
-    component: <text>Edit text</text>
+    component: (props: any) => <text {...props}>Default text</text>,
+    getInitialProps: (p: Point) => ({ x: p.x, y: p.y })
   }
-];
+};
+
+const initialState: EditorState = {
+  graphics: [],
+  mode: Modes.VIEW
+};
+
+function createGraphic(name: string, point: Point) {
+  const graphicDef = graphicsMap[name];
+  if (!graphicDef) throw Error(`No definition found for ${name}`);
+  const props = graphicDef.getInitialProps(point);
+  const id = uuid();
+  return graphicDef.component({ id, key: id, ...props });
+}
+
+function reducer(state: EditorState, action: EditorAction): EditorState {
+  switch (action.type) {
+    case 'create':
+      const { name } = action.payload;
+      return {
+        ...state,
+        selectedTool: name,
+        mode: Modes.DRAW
+      };
+    case 'click':
+      const { point } = action.payload;
+      if (point && state.selectedTool && state.mode !== Modes.VIEW) {
+        const graphic = createGraphic(state.selectedTool, point);
+        return {
+          ...state,
+          graphics: [...state.graphics, graphic],
+          selectedTool: undefined,
+          lastPoint: point,
+          mode: Modes.VIEW // To be modified
+        };
+      }
+      return state;
+    default:
+      return state;
+  }
+}
 
 function Editor() {
-  const [mode, setMode] = useState(Modes.VIEW);
-  const [tool, setTool] = useState<string>();
-  const [components, setComponents] = useState<JSX.Element[]>([]);
+  const [{ graphics, selectedTool }, dispatch] = useReducer(
+    reducer,
+    initialState
+  );
   const svgRef = useRef<SVGSVGElement>(null);
 
-  const addComponent = (e: React.MouseEvent) => {
-    const element = elements.find((e) => e.name === tool);
-    if (!element || !svgRef.current) return;
-    const clientPoint = getPointFromEvent(e);
-    const svgPoint = clientPointToSvgPoint(clientPoint, svgRef.current);
-    const newComponent = createComponent(element.component, svgPoint);
-    setComponents((prev) => [...prev, newComponent]);
-  };
-
-  const createComponent = (component: JSX.Element, position: Point) => {
-    const id = uuid();
-    let props;
-    if (component.type === 'circle') {
-      props = {
-        cx: position.x,
-        cy: position.y
-      };
-    } else {
-      props = {
-        x: position.x,
-        y: position.y
-      };
-    }
-    return (
-      <component.type id={id} key={id} {...component.props} {...props}>
-        {component.props.children}
-      </component.type>
-    );
-  };
+  const graphicTools = Object.keys(graphicsMap).map((k) => ({
+    name: k,
+    ...graphicsMap[k]
+  }));
 
   const handleSvgClick: React.MouseEventHandler = (e) => {
-    if (mode !== Modes.DRAW) return;
-    addComponent(e);
-    setTool(undefined);
-    setMode(Modes.VIEW);
+    if (!svgRef.current) return;
+    const clientPoint = getPointFromEvent(e);
+    const svgPoint = clientPointToSvgPoint(clientPoint, svgRef.current);
+    dispatch({ type: 'click', payload: { point: svgPoint } });
   };
 
   const handleCreateClick = (elementType: string) => {
-    setMode(Modes.DRAW);
-    setTool(elementType);
+    dispatch({ type: 'create', payload: { name: elementType } });
   };
 
   return (
     <Container>
       <CreatePanel
-        elements={elements}
-        selected={tool}
+        elements={graphicTools}
+        selected={selectedTool}
         onClick={handleCreateClick}
       />
       <Canvas
         ref={svgRef}
-        elements={components}
+        elements={graphics}
         onClick={handleSvgClick}
         height="400px"
         width="500px"

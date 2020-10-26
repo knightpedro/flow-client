@@ -1,9 +1,13 @@
 import React from 'react';
 import styled from 'styled-components';
-import { EditorElement } from '../../interfaces';
+
+interface EditorTool {
+  name: string;
+  icon: JSX.Element;
+}
 
 interface CreatePanelProps {
-  elements: EditorElement[];
+  elements: EditorTool[];
   onClick: (e: string) => void;
   selected?: string;
 }
